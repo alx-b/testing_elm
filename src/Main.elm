@@ -7,6 +7,8 @@ import Html.Attributes
 import Url
 import Url.Parser exposing ((</>))
 
+import Register
+import Login
 
 -- MAIN
 
@@ -29,6 +31,8 @@ main =
 type alias Model =
     { navigationKey : Browser.Navigation.Key
     , currentRoute : Route
+    , registerPageModel : Register.Model
+    , loginPageModel : Login.Model
     }
 
     
@@ -41,6 +45,8 @@ init _ url key =
         newModel =
             { navigationKey = key
             , currentRoute = newRoute
+            , registerPageModel = Register.init
+            , loginPageModel = Login.init
             }
 
     in
@@ -53,6 +59,7 @@ init _ url key =
 type Route
     = Home
     | Register
+    | Login
     | NotFound
 
         
@@ -61,6 +68,7 @@ routeParser =
     Url.Parser.oneOf
         [ Url.Parser.map Home Url.Parser.top
         , Url.Parser.map Register (Url.Parser.s "register")
+        , Url.Parser.map Login (Url.Parser.s "login")
         ]
 
 
@@ -77,6 +85,8 @@ type Msg
     | ViewRegisterPage
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
+    | RegisterMsg Register.Msg
+    | LoginMsg Login.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -100,8 +110,21 @@ update msg model =
         
         ViewRegisterPage ->
             ({ model | currentRoute = Register }, Cmd.none)
-    
 
+        RegisterMsg message ->
+            let
+                newRegisterPageModel =
+                    Register.update message model.registerPageModel
+            in
+                ({ model | registerPageModel = newRegisterPageModel }, Cmd.none)
+
+        LoginMsg message ->
+            let
+                newLoginPageModel =
+                    Login.update message model.loginPageModel
+            in
+                ({ model | loginPageModel = newLoginPageModel }, Cmd.none)
+            
 -- SUBSCRIPTIONS
 
 
@@ -122,12 +145,16 @@ view model =
                     viewHome
 
                 Register ->
-                    viewRegister
+                    Html.map RegisterMsg (Register.view model.registerPageModel)
+                    --viewRegister
+
+                Login ->
+                    Html.map LoginMsg (Login.view model.loginPageModel)
 
                 NotFound ->
                     Html.text "Not found"
     in
-        { title = "MY TITLE"
+        { title = "SPA test"
         , body =
             [ viewHeader
             , content
@@ -139,6 +166,7 @@ viewHeader =
     Html.div []
         [ viewLink "/" "Home"
         , viewLink "/register" "Register"
+        , viewLink "/login" "Login"
         ]
 
 
