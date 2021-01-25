@@ -12,28 +12,28 @@ type alias Model =
   , password : String
   }
 
-init : Model
+init : ( Model, Cmd Msg )
 init =
-  Model "" ""
+  (Model "" "", Cmd.none)
 
 type Msg
     = Name String
     | Password String
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg form =
   case msg of
     Name name ->
-      { form | name = name }
+      ({ form | name = name }, Cmd.none)
 
     Password password ->
-      { form | password = password }
+      ({ form | password = password }, Cmd.none )
 
     
 view : Model -> Html Msg
 view form =
-    Html.div []
+    Html.div [Html.Attributes.class "login-form"]
         [ Html.text "LOGIN"
         , viewInput "text" "Name" form.name Name
         , viewInput "password" "Password" form.password Password

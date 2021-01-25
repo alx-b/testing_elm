@@ -10,6 +10,7 @@ import Url.Parser exposing ((</>))
 import Register
 import Login
 
+
 -- MAIN
 
 
@@ -30,27 +31,20 @@ main =
 
 type alias Model =
     { navigationKey : Browser.Navigation.Key
-    , currentRoute : Route
-    , registerPageModel : Register.Model
-    , loginPageModel : Login.Model
+    , currentPage : Page
     }
 
+
+type Page
+    = HomePage
+    | RegisterPage Register.Model
+    | LoginPage Login.Model
+    | NotFoundPage
     
+
 init : () -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init _ url key =
-    let
-        newRoute =
-            parseUrlToRoute url
-
-        newModel =
-            { navigationKey = key
-            , currentRoute = newRoute
-            , registerPageModel = Register.init
-            , loginPageModel = Login.init
-            }
-
-    in
-        (newModel, Cmd.none)
+    updateUrl url { navigationKey = key, currentPage = NotFoundPage}
 
 
 -- ROUTE
@@ -60,7 +54,6 @@ type Route
     = Home
     | Register
     | Login
-    | NotFound
 
         
 routeParser : Url.Parser.Parser (Route -> a) a
@@ -71,19 +64,42 @@ routeParser =
         , Url.Parser.map Login (Url.Parser.s "login")
         ]
 
+        
+updateUrl : Url.Url -> Model -> (Model, Cmd Msg)
+updateUrl url model =
+    case Url.Parser.parse routeParser url of                                
+        Just Register ->
+            toRegisterPage model (Register.init)
 
-parseUrlToRoute : Url.Url -> Route
-parseUrlToRoute url =
-    Maybe.withDefault NotFound (Url.Parser.parse routeParser url)
+        Just Login ->
+            toLoginPage model (Login.init)
+
+        Just Home ->
+            ( { model | currentPage = HomePage }, Cmd.none )    
+
+        Nothing ->
+            ( { model | currentPage = NotFoundPage }, Cmd.none )
+
+
+toRegisterPage : Model -> ( Register.Model, Cmd Register.Msg ) -> ( Model, Cmd Msg )
+toRegisterPage model ( register, cmd ) =
+    ( { model | currentPage = RegisterPage register }
+    , Cmd.map RegisterMsg cmd
+    )
+
+
+toLoginPage : Model -> ( Login.Model, Cmd Login.Msg ) -> ( Model, Cmd Msg )
+toLoginPage model ( login, cmd ) =
+    ( { model | currentPage = LoginPage login }
+    , Cmd.map LoginMsg cmd
+    )
 
 
 -- UPDATE
 
 
 type Msg
-    = ViewHomePage
-    | ViewRegisterPage
-    | LinkClicked Browser.UrlRequest
+    = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
     | RegisterMsg Register.Msg
     | LoginMsg Login.Msg
@@ -100,30 +116,27 @@ update msg model =
                 Browser.External href ->
                     ( model, Browser.Navigation.load href )
 
-        UrlChanged url ->
-            ( { model | currentRoute = parseUrlToRoute url }
-            , Cmd.none
-            )
 
-        ViewHomePage ->
-            ({ model | currentRoute = Home }, Cmd.none)
-        
-        ViewRegisterPage ->
-            ({ model | currentRoute = Register }, Cmd.none)
+        UrlChanged url ->
+            updateUrl url model
+
 
         RegisterMsg message ->
-            let
-                newRegisterPageModel =
-                    Register.update message model.registerPageModel
-            in
-                ({ model | registerPageModel = newRegisterPageModel }, Cmd.none)
+            case model.currentPage of                                        
+                RegisterPage registerModel ->                               
+                    toRegisterPage model (Register.update message registerModel)
+
+                _ ->                                               
+                    ( model, Cmd.none )                              
 
         LoginMsg message ->
-            let
-                newLoginPageModel =
-                    Login.update message model.loginPageModel
-            in
-                ({ model | loginPageModel = newLoginPageModel }, Cmd.none)
+            case model.currentPage of                                        
+                LoginPage loginModel ->                               
+                    toLoginPage model (Login.update message loginModel)
+
+                _ ->                                               
+                    ( model, Cmd.none )                              
+            
             
 -- SUBSCRIPTIONS
 
@@ -140,45 +153,37 @@ view : Model -> Browser.Document Msg
 view model =
     let
         content =
-            case model.currentRoute of
-                Home ->
-                    viewHome
+            case model.currentPage of
+                RegisterPage register ->
+                    Register.view register
+                        |> Html.map RegisterMsg
 
-                Register ->
-                    Html.map RegisterMsg (Register.view model.registerPageModel)
-                    --viewRegister
+                LoginPage login ->
+                    Login.view login
+                        |> Html.map LoginMsg
 
-                Login ->
-                    Html.map LoginMsg (Login.view model.loginPageModel)
+                HomePage ->
+                    Html.text "HOME"
 
-                NotFound ->
-                    Html.text "Not found"
+                NotFoundPage ->
+                    Html.text "NOT FOUND"
     in
         { title = "SPA test"
         , body =
-            [ viewHeader
+            [ navBar 
             , content
             ]
         }
 
 
-viewHeader =
-    Html.div []
-        [ viewLink "/" "Home"
-        , viewLink "/register" "Register"
-        , viewLink "/login" "Login"
-        ]
-
-
-viewHome =
-    Html.text "HOME"
-
-
-viewRegister =
-    Html.text "REGISTER"
+navBar =
+   Html.div [Html.Attributes.class "navigation-bar"]
+       [ viewLink "/" "Home"
+       , viewLink "/register" "Register"
+       , viewLink "/login" "Login"
+       ]
 
 
 viewLink : String -> String -> Html msg
 viewLink path text =
-    Html.li [] [ Html.a [ Html.Attributes.href path ] [ Html.text text ] ]
-
+    Html.div [] [ Html.a [Html.Attributes.href path, Html.Attributes.class "nav-links"] [ Html.text text ] ]
