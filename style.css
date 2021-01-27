@@ -1,0 +1,48 @@
+body {
+    background-color: #222;
+    color: #fff
+}
+
+.navigation-bar {
+    display: grid;
+    grid-template-columns: auto auto auto 1fr;
+    height: 30px;
+    align-content: center;
+    grid-gap: 8px;
+    background-color: #111;
+    margin-right: auto;
+}
+
+.nav-links {
+    text-decoration: none;
+    padding: 10px;
+    color: #093;
+    margin-right: auto;
+    font-size: 20px;
+}
+
+.nav-links:hover {
+    color: #1b4;
+}
+
+.login-form {
+    display: grid;
+    grid-gap: 8px;
+    
+}
+
+.register-form {
+    display: grid;
+    grid-gap: 8px;
+}
+
+.post {
+    display: grid;
+    grid-gap: 6px;
+    background-color: #333;
+}
+
+.posts {
+    display: grid;
+    grid-gap: 12px;
+}
