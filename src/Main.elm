@@ -9,6 +9,7 @@ import Url.Parser exposing ((</>))
 
 import Register
 import Login
+import Posts
 
 
 -- MAIN
@@ -36,7 +37,7 @@ type alias Model =
 
 
 type Page
-    = HomePage
+    = HomePage Posts.Model
     | RegisterPage Register.Model
     | LoginPage Login.Model
     | NotFoundPage
@@ -75,7 +76,7 @@ updateUrl url model =
             toLoginPage model (Login.init)
 
         Just Home ->
-            ( { model | currentPage = HomePage }, Cmd.none )    
+            toPostsPage model (Posts.init)
 
         Nothing ->
             ( { model | currentPage = NotFoundPage }, Cmd.none )
@@ -94,6 +95,12 @@ toLoginPage model ( login, cmd ) =
     , Cmd.map LoginMsg cmd
     )
 
+toPostsPage : Model -> ( Posts.Model, Cmd Posts.Msg ) -> ( Model, Cmd Msg )
+toPostsPage model ( posts, cmd ) =
+    ( { model | currentPage = HomePage posts }
+    , Cmd.map PostsMsg cmd
+    )
+
 
 -- UPDATE
 
@@ -103,6 +110,7 @@ type Msg
     | UrlChanged Url.Url
     | RegisterMsg Register.Msg
     | LoginMsg Login.Msg
+    | PostsMsg Posts.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -137,7 +145,15 @@ update msg model =
                 _ ->                                               
                     ( model, Cmd.none )                              
             
+        PostsMsg message ->
+            case model.currentPage of                                        
+                HomePage postsModel ->                               
+                    toPostsPage model (Posts.update message postsModel)
+
+                _ ->                                               
+                    ( model, Cmd.none )                              
             
+
 -- SUBSCRIPTIONS
 
 
@@ -162,8 +178,9 @@ view model =
                     Login.view login
                         |> Html.map LoginMsg
 
-                HomePage ->
-                    Html.text "HOME"
+                HomePage posts ->
+                    Posts.view posts
+                        |> Html.map PostsMsg
 
                 NotFoundPage ->
                     Html.text "NOT FOUND"
